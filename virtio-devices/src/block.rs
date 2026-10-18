@@ -897,9 +897,13 @@ impl Block {
                 (disk_nsectors, avail_features, 0, config, false)
             };
 
-        let serial = serial
-            .map_or_else(|| build_serial(&disk_path), Vec::from)
-            .into_boxed_slice();
+        let serial = match serial {
+            Some(serial) => Vec::from(serial),
+            // The default serial is derived from the host file's metadata.
+            None if disk_image.fd().is_err() => vec![0; VIRTIO_BLK_ID_BYTES as usize],
+            None => build_serial(&disk_path),
+        }
+        .into_boxed_slice();
 
         Ok(Block {
             common: VirtioCommon {
